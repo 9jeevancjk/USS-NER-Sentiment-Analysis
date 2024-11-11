@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import spacy
 
 # Initialize OpenAI client using Streamlit's secrets
