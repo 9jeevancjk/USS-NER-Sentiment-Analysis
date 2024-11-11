@@ -1,58 +1,59 @@
 import streamlit as st
-from openai import OpenAI
+import openai
 import spacy
 
-# Initialize OpenAI client using Streamlit's secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Set the API key for OpenAI
+openai.api_key = "OPENAI_API_KEY"
 
-# Load the spaCy model for NER (English model)
+# Load the spaCy NER model (English model)
 nlp = spacy.load("en_core_web_sm")
 
-# # Set up OpenAI API key
-# openai.api_key = "your_openai_api_key"
-# Function to use OpenAI's API to refine entity recognition or provide additional insights
-# Define the function to analyze sentiment with word-level contributions using GPT
-def get_openai_entities(text):
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are an NER model that enhances spaCy's output with extra insights."},
-            {"role": "user", "content": f"Provide additional insights on the named entities in the following text: {text}"}
-        ],
-        max_tokens=150,
-    )
-    return response['choices'][0]['message']['content']
+# Function to analyze sentiment with word-level contributions using GPT-4
+def analyze_sentiment_with_words(review, category):
+    prompt = f"Analyze the sentiment of the following {category} review and provide sentiment contributions for each word (percentage):\n\nReview: {review}"
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a sentiment analysis assistant."},
+                {"role": "user", "content": prompt},
+            ]
+        )
 
-# Streamlit App
-st.title("Named Entity Recognition App with spaCy and OpenAI")
-st.write("Enter some text, and this app will identify named entities using spaCy and optionally enhance them with OpenAI's API.")
+        sentiment_analysis = response['choices'][0]['message']['content']
+        return sentiment_analysis.strip()
+    except Exception as e:
+        return f"An error occurred during sentiment analysis: {e}"
 
-# Text input
-input_text = st.text_area("Enter text here", "")
+# Function to perform Named Entity Recognition (NER)
+def extract_entities(review):
+    doc = nlp(review)
+    entities = [(ent.text, ent.label_) for ent in doc.ents]
+    return entities
 
-# Option to use OpenAI for additional insights
-use_openai = st.checkbox("Enhance with OpenAI")
+# Streamlit app
+st.title("Sentiment Analysis and Named Entity Recognition")
 
-# Button to trigger NER
-if st.button("Extract Entities"):
-    if input_text:
-        # Process text with spaCy
-        doc = nlp(input_text)
-        entities = [(ent.text, ent.label_) for ent in doc.ents]
-        
-        # Display entities identified by spaCy
-        st.write("### Entities identified by spaCy:")
+# User inputs
+category = st.selectbox("Select the category of the review:", ["Food", "Product", "Place", "Other"])
+review = st.text_area("Enter your review:")
+
+# Analyze button
+if st.button("Analyze"):
+    if review:
+        # Perform sentiment analysis
+        st.subheader("Sentiment Analysis with Word-Level Contributions")
+        sentiment_with_contributions = analyze_sentiment_with_words(review, category)
+        st.write(sentiment_with_contributions)
+
+        # Perform Named Entity Recognition (NER)
+        st.subheader("Named Entities in the Review")
+        entities = extract_entities(review)
         if entities:
-            for ent, label in entities:
-                st.write(f"**Entity**: {ent} - **Label**: {label}")
+            for entity, label in entities:
+                st.write(f"**Entity**: {entity} - **Label**: {label}")
         else:
-            st.write("No entities found by spaCy.")
-
-        # Use OpenAI for additional insights if checkbox is checked
-        if use_openai:
-            with st.spinner("Enhancing entities with OpenAI..."):
-                openai_entities = get_openai_entities(input_text)
-                st.write("### OpenAI-enhanced Entities:")
-                st.write(openai_entities)
+            st.write("No entities found.")
     else:
-        st.warning("Please enter some text before extracting entities.")
+        st.warning("Please enter a review to analyze.")
