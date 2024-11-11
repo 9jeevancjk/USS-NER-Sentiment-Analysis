@@ -2,23 +2,29 @@ import streamlit as st
 import openai
 import spacy
 
+# Initialize OpenAI client using Streamlit's secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 # Load the spaCy model for NER (English model)
 nlp = spacy.load("en_core_web_sm")
 
-# Set up OpenAI API key
-openai.api_key = "your_openai_api_key"
-
+# # Set up OpenAI API key
+# openai.api_key = "your_openai_api_key"
 # Function to use OpenAI's API to refine entity recognition or provide additional insights
-def get_openai_entities(text):
+# Define the function to analyze sentiment with word-level contributions using GPT
+def analyze_sentiment_with_words(review, category):
+    prompt = f"Analyze the sentiment of the following {category} review and provide sentiment contributions for each word (percentage):\n\nReview: {review}"
+
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are an NER model that enhances spaCy's output with extra insights."},
-            {"role": "user", "content": f"Provide additional insights on the named entities in the following text: {text}"}
-        ],
-        max_tokens=150,
+            {"role": "system", "content": "You are a sentiment analysis assistant."},
+            {"role": "user", "content": prompt},
+        ]
     )
-    return response['choices'][0]['message']['content']
+
+    sentiment_analysis = response['choices'][0]['message']['content']
+    return sentiment_analysis.strip()
 
 # Streamlit App
 st.title("Named Entity Recognition App with spaCy and OpenAI")
