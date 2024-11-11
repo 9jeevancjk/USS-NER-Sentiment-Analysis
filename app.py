@@ -13,7 +13,7 @@ nlp = spacy.load("en_core_web_sm")
 # Function to use OpenAI's API to refine entity recognition or provide additional insights
 # Define the function to analyze sentiment with word-level contributions using GPT
 def get_openai_entities(text):
-    response = openai.ChatCompletion.create(
+    response = client.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are an NER model that enhances spaCy's output with extra insights."},
